@@ -1,64 +1,70 @@
 package com.example.demo.baseService;
 
 import com.fasterxml.classmate.types.TypePlaceHolder;
+import com.google.common.base.Predicates;
 import com.squareup.javapoet.*;
 import com.sun.deploy.ui.AppInfo;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ResponseEntity;
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.lang.model.element.Modifier;
-import javax.security.auth.login.Configuration;
+
 import springfox.documentation.spring.web.plugins.Docket;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.function.Predicate;
 
 public class SwaggerBuilderService {
 
     public void swaggerGenerator(){
 //        System.out.println(DocumentationType.SWAGGER_2);
 
-//        MethodSpec apiInfo = MethodSpec.methodBuilder("apiInfo")
-//                .addModifiers(Modifier.PRIVATE)
-//                .returns(AppInfo.class)
-//
-//                .addCode("return new ApiInfoBuilder()\n"
-//                        + ".title(\"Customer Management Rest APIs\")\n"
-//                        + ".description(\"This page lists all the rest apis for Customer Manage App.\")\n"
-//                        + "  .version(\"1.0-SNAPSHOT\")\n"
-//                )
-//                .build();
-
-
-        Class<?> act = Object.class;
-
-        try {
-            act = Class.forName("DocumentationType.SWAGGER_2");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        System.out.println(DocumentationType.SWAGGER_2.getClass());
-        System.out.println(act);
+        MethodSpec apiInfo = MethodSpec.methodBuilder("apiInfo")
+                .addModifiers(Modifier.PRIVATE)
+                .returns(ApiInfo.class)
+                .addJavadoc(CodeBlock
+                        .builder()
+                        .add("Describe your apis")
+                        .build())
+                .addCode("return new $T()\n", ApiInfoBuilder.class)
+                .addCode(
+                        ".title(\"Customer Management Rest APIs\")\n"
+                        + ".description(\"This page lists all the rest apis for Customer Manage App.\")\n"
+                        + ".version(\"1.0-SNAPSHOT\")\n"
+                )
+                .addStatement(".build()")
+                .build();
 
 
         MethodSpec produceApi = MethodSpec.methodBuilder("produceApi")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Bean.class)
                 .returns(Docket.class)
-                .addStatement("return new Docket $T",act)
-//                .addStatement(".apiInfo($T)", apiInfo)
-//                .addStatement(".select()")
-//                .addStatement(".apis($T)", RequestHandlerSelectors.basePackage("com.example.demo"))
-//                .addCode(
-//                        ".paths(paths())\n"+
-//                                ".build()"
-//                )
+                .addCode("return new $T($T.$L)\n",Docket.class,DocumentationType.class,"SWAGGER_2")
+                .addCode(".apiInfo(apiInfo())\n")
+                .addCode(".select()\n")
+                .addCode(".apis($T.$L($S))", RequestHandlerSelectors.class,"basePackage","com.example.demo")
+                .addCode(".paths(paths())\n")
+                .addStatement(".build()")
                 .build();
 
+        MethodSpec paths = MethodSpec.methodBuilder("paths")
+                .addModifiers(Modifier.PRIVATE)
+                .returns(ParameterizedTypeName.get(Predicate.class, String.class))
+                .addJavadoc(CodeBlock
+                        .builder()
+                        .add("Only select apis that matches the given Predicates.")
+                        .build())
+                .addCode("return $T.$L(\n$T.$L($S),\n$T.$L($T.$L($S))\n);\n",Predicates.class,"and", PathSelectors.class,"regex","/customer.*", Predicates.class,"not",PathSelectors.class,"regex","/error.*")
+                .build();
 
 
         TypeSpec controllerSpec = TypeSpec.classBuilder("SwaggerConfig" )
@@ -67,6 +73,8 @@ public class SwaggerBuilderService {
                 .addAnnotation(EnableSwagger2.class)
 
                 .addMethod(produceApi)
+                .addMethod(apiInfo)
+                .addMethod(paths)
                 .build();
 
         JavaFile controllerJavafile = JavaFile.builder("com.example.demo.config",controllerSpec)
