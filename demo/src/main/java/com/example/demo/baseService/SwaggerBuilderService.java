@@ -1,6 +1,7 @@
 package com.example.demo.baseService;
 
 import com.fasterxml.classmate.types.TypePlaceHolder;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.squareup.javapoet.*;
 import com.sun.deploy.ui.AppInfo;
@@ -20,7 +21,6 @@ import springfox.documentation.spring.web.plugins.Docket;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.function.Predicate;
 
 public class SwaggerBuilderService {
 
@@ -63,7 +63,7 @@ public class SwaggerBuilderService {
                         .builder()
                         .add("Only select apis that matches the given Predicates.")
                         .build())
-                .addCode("return $T.$L(\n$T.$L($S),\n$T.$L($T.$L($S))\n);\n",Predicates.class,"and", PathSelectors.class,"regex","/customer.*", Predicates.class,"not",PathSelectors.class,"regex","/error.*")
+                .addCode("return $T.$L(\n$T.$L($S),\n$T.$L($T.$L($S))\n);\n", Predicates.class,"and", PathSelectors.class,"regex","/customer.*", Predicates.class,"not",PathSelectors.class,"regex","/error.*")
                 .build();
 
 
